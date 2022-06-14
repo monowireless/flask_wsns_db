@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+    <meta charset="UTF-8">
+    <title>センサーノード</title>
+    <link rel="stylesheet" type="text/css" href="static/css/style.css">
+</head>
+<body>
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th>SID</th>
+                    <th>詳細</th>
+                    <th>最新データ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>
+                        <form method="POST" name="FORM_{{item[1]}}" action="/year">
+                        <a href="javascript:FORM_{{item[1]}}.submit()">{{item[1]}}</a>
+                        <input type="hidden" name="i32sid" value="{{item[0]}}">
+                        <input type="hidden" name="sid" value="{{item[1]}}">
+                        <input type="hidden" name="desc" value="{{item[2]}}">
+                        <input type="hidden" name="latest_ts" value="{{item[3]}}">
+                        </form>
+                    </td>
+                    <td>{{item[2]}}</td>
+                    <td>{{item[4]}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

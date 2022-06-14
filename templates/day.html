@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+    <meta charset="UTF-8">
+    <title>センサーノード{{sid}} - {{desc}}</title>
+    <link rel="stylesheet" type="text/css" href="static/css/style.css">
+</head>
+<body>
+    <div class="node">{{sid}} {{year}}/{{month}}</div>
+    <div class="desc">{{desc}}</div>
+    <p>i32sid={{i32sid}} year={{year}} month={{month}} data={{data}}</p>
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th>{{year}}/{{month}}/日</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>
+                        <form method="POST" name="FORM_{{item[0]}}" action="/show_the_day">
+                            <a href="javascript:FORM_{{item[0]}}.submit()">{{item[0]}}</a>
+                            <input type="hidden" name="i32sid" value="{{i32sid}}">
+                            <input type="hidden" name="sid" value="{{sid}}">
+                            <input type="hidden" name="desc" value="{{desc}}">
+                            <input type="hidden" name="latest_ts" value="{{latest_ts}}">
+                            <input type="hidden" name="year" value="{{year}}">
+                            <input type="hidden" name="month" value="{{month}}">
+                            <input type="hidden" name="day" value="{{item[0]}}">
+                        </form>
+                    </td>    
+                    <td>
+                        <form method="POST" name="FORM_{{item[0]}}G" action="/graph_the_day">
+                            <a href="javascript:FORM_{{item[0]}}G.submit()">グラフ</a>
+                            <input type="hidden" name="i32sid" value="{{i32sid}}">
+                            <input type="hidden" name="sid" value="{{sid}}">
+                            <input type="hidden" name="desc" value="{{desc}}">
+                            <input type="hidden" name="latest_ts" value="{{latest_ts}}">
+                            <input type="hidden" name="year" value="{{year}}">
+                            <input type="hidden" name="month" value="{{month}}">
+                            <input type="hidden" name="day" value="{{item[0]}}">
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <a href="/">一覧に戻る</a>
+</body>
+</html>

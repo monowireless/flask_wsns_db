@@ -1,0 +1,17 @@
+th,td {
+    border: solid 1px;
+}
+ 
+table {
+    border-collapse:  collapse;
+    width:  100%;
+}
+ 
+th {
+    /* width:  100px;              /* 幅指定 */
+    text-align: center;           /* 文字の揃え位置指定 */
+}
+ 
+td {
+    text-align:  center;        /* 文字の揃え位置指定 */
+}
