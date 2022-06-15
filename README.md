@@ -46,6 +46,7 @@ $ python3 app.py
 
 
 ## app.py について
+※ この解説で引用されるソースコードは格納される最新コードと一部違う場合があります。
 
 ### import セクション
 sqlite3, Flask関連のパッケージを読み込んでいます。
@@ -124,8 +125,10 @@ for sid, ts in cur.fetchall():
 
 ### templates/index.html
 HTMLのテンプレートでは、Flask から渡されたデータを `{{item[1]}}` のような式を用いて内容を構成します。
-この HTML では、SID リストを表示して、その SID のリンクをクリックすることで、センサーデータの格納される
-年度を検索する画面に遷移します。（年度検索画面から月検索、日検索、日データ表示と画面遷移します）
+この HTML では、SID リスト（および無線ノードから得られた最新の情報）を表示します。
+その SID のリンクをクリックすることで、センサーデータの格納される年度を検索する画面に遷移します。
+（年度検索画面から月検索、日検索、日データ表示と画面遷移します）
+また「最新データ」の日付をクリックすることで、そのデータから遡って１日分のグラフを表示します。
 
 ```html
 <!DOCTYPE html>
@@ -142,7 +145,16 @@ HTMLのテンプレートでは、Flask から渡されたデータを `{{item[1
                 <tr>
                     <th>SID</th>
                     <th>詳細</th>
+                    <th>センサー種別</th>
                     <th>最新データ</th>
+                    <th>LID</th>
+                    <th>LQI</th>
+                    <th>value</th>
+                    <th>value1</th>
+                    <th>value2</th>
+                    <th>value3</th>
+                    <th>val_vcc_mv</th>
+                    <th>EVENT</th>
                 </tr>
             </thead>
             <tbody>
@@ -157,12 +169,36 @@ HTMLのテンプレートでは、Flask から渡されたデータを `{{item[1
                         <input type="hidden" name="latest_ts" value="{{item[3]}}">
                         </form>
                     </td>
-                    <td>{{item[2]}}</td>
-                    <td>{{item[4]}}</td>
+                    <td>{{item[2]}}</td><!-- desc -->
+                    <td>{{item[5][0]}}</td>
+                    <td>
+                        <form method="POST" name="FORM_L_{{item[1]}}" action="/graph_the_latest">
+                            <a href="javascript:FORM_L_{{item[1]}}.submit()">{{item[4]}}</a>
+                            <input type="hidden" name="i32sid" value="{{item[0]}}">
+                            <input type="hidden" name="sid" value="{{item[1]}}">
+                            <input type="hidden" name="desc" value="{{item[2]}}">
+                            <input type="hidden" name="latest_ts" value="{{item[3]}}">
+                        </form>
+                    </td><!-- timestamp -->
+                    <td>{{item[5][1]}}</td>
+                    <td>{{item[5][2]}}</td>
+                    <td>{{item[5][3]}}</td>
+                    <td>{{item[5][4]}}</td>
+                    <td>{{item[5][5]}}</td>
+                    <td>{{item[5][6]}}</td>
+                    <td>{{item[5][7]}}</td>
+                    <td>{{item[5][9]}}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="lastupd">
+        Last updated at 
+        <SCRIPT LANGUAGE="javascript" TYPE="text/javascript">
+            options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
+            document.write(new Intl.DateTimeFormat('default', options).format(new Date()) + ".");
+        </SCRIPT>
     </div>
 </body>
 </html>
@@ -305,7 +341,10 @@ HTMLテンプレートに情報を渡しています。リスト(`data`)に含�
 ```
 
 ### センサーデータの検索（日表示、グラフ）
-リスト表示と流れは同じですが、表示用データを`ORDER BY random() LIMIT 1024`の指定を行い間引いています。
+グラフの機能は `_graph_a_day()` 関数に処理を集約しています。最新のタイムスタンプからグラフを描画する処理と
+指定した年月日からグラフを描画する２種類を実行しています。
+
+データ検索はリスト表示と流れは同じですが、表示用データを`ORDER BY random() LIMIT 1024`の指定を行い間引いています。
 ```python
     cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
                    WHERE (sid=?) and (year=?) and (month=?) and (day=?)

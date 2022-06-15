@@ -38,7 +38,15 @@
                     </td>
                     <td>{{item[2]}}</td><!-- desc -->
                     <td>{{item[5][0]}}</td>
-                    <td>{{item[4]}}</td><!-- timestamp -->
+                    <td>
+                        <form method="POST" name="FORM_L_{{item[1]}}" action="/graph_the_latest">
+                            <a href="javascript:FORM_L_{{item[1]}}.submit()">{{item[4]}}</a>
+                            <input type="hidden" name="i32sid" value="{{item[0]}}">
+                            <input type="hidden" name="sid" value="{{item[1]}}">
+                            <input type="hidden" name="desc" value="{{item[2]}}">
+                            <input type="hidden" name="latest_ts" value="{{item[3]}}">
+                        </form>
+                    </td><!-- timestamp -->
                     <td>{{item[5][1]}}</td>
                     <td>{{item[5][2]}}</td>
                     <td>{{item[5][3]}}</td>
@@ -51,6 +59,13 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="lastupd">
+        Last updated at 
+        <SCRIPT LANGUAGE="javascript" TYPE="text/javascript">
+            options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
+            document.write(new Intl.DateTimeFormat('default', options).format(new Date()) + ".");
+        </SCRIPT>
     </div>
 </body>
 </html>
