@@ -9,7 +9,8 @@ from flask import Flask,render_template,request,g
 import base64
 from io import BytesIO
 
-from matplotlib import pyplot as plt
+from flask import Flask
+from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 
 # configs
@@ -323,9 +324,8 @@ def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
         v_t.append(lt)
 
     ### save fig
-    fig = plt.figure()
+    fig = Figure()
     fig.set_size_inches(5, 10)
-
     fig.suptitle("%s - %04d/%02d/%02d - %s" % (sid, int(year), int(month), int(day), lblinfo[0]))
     
     ax = fig.add_subplot(3, 1, 1)
