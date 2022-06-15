@@ -10,6 +10,14 @@ from io import BytesIO
 
 from matplotlib import pyplot as plt
 
+# configs
+import configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
+try: conf_db_filename = config['SQLITE3']['db_file']
+except: conf_db_filename = '../log/TWELITE_Stage_WSns.sqlite'
+
+# app def
 app = Flask(__name__)
 
 # convert integer value into hex value (assuming int32_t)
@@ -26,7 +34,7 @@ def toint_i32(val):
 # open the db in `g`, global for session
 def db_open():
     if 'db' not in g:
-        g.db = sqlite3.connect('../log/TWELITE_Stage_WSns.sqlite')
+        g.db = sqlite3.connect(conf_db_filename)
     return g.db
 
 # query nodes and desc (/)
