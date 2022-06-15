@@ -1,6 +1,7 @@
 # Copyright (C) 2022 Mono Wireless Inc. All Rights Reserved.
 # Released under MW-OSSLA-1J,1E (MONO WIRELESS OPEN SOURCE SOFTWARE LICENSE AGREEMENT).
 
+import sys
 import sqlite3
 from datetime import datetime
 from flask import Flask,render_template,request,g
@@ -16,6 +17,59 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 try: conf_db_filename = config['SQLITE3']['db_file']
 except: conf_db_filename = '../log/TWELITE_Stage_WSns.sqlite'
+
+# some dictionaries 
+dict_pkt_type = {
+    1 : ('PAL MAG', 'MAG', 'N/A', 'N/A', 'N/A'),
+    2 : ('PAL AMB', '温度[℃]', '湿度[%]', '照度[lx]', 'N/A'),
+    3 : ('PAL MOT','X[G]', 'Y[G]', 'Z[G]', 'N/A'),
+    5 : ('CUE','X[G]', 'Y[G]', 'Z[G]', 'N/A'),
+    6 : ('ARIA','温度[℃]', '湿度[%]', 'N/A', 'N/A'),
+    257 : ('App_TWELITE','DI0/1/2/3', 'AD1[V]', 'AD2[V]', 'AD3[V]'),
+    'ARIA' : 6,
+    'PAL_AMB' : 2,
+    'PAL_MOT' : 3,
+    'CUE' : 5,
+    'MAG' : 1,
+    'APPTWELITE' : 257
+}
+
+dict_mag = {
+    0 : 'なし',
+    1 : 'N極',
+    2 : 'S極',
+    3 :  None
+}
+
+dict_dio = {
+    0 : 'H/H/H/H',
+    1 : 'L/H/H/H',
+    2 : 'H/L/H/H',
+    3 : 'L/L/H/H',
+    4 : 'H/H/L/H',
+    5 : 'L/H/L/H',
+    6 : 'H/L/L/H',
+    7 : 'L/L/L/H',
+    8 : 'H/H/H/L',
+    9 : 'L/H/H/L',
+    10: 'H/L/H/L',
+    11: 'L/L/H/L',
+    12: 'H/H/L/L',
+    13: 'L/H/L/L',
+    14: 'H/L/L/L',
+    15: 'L/L/L/L',
+}
+
+dict_ev_cue = {
+    1 : '面１',
+    2 : '面２',
+    3 : '面３',
+    4 : '面４',
+    5 : '面５',
+    6 : '面６',
+    8 : 'シェイク',
+    16 : 'ムーブ',
+}
 
 # app def
 app = Flask(__name__)
@@ -40,6 +94,7 @@ def db_open():
 # query nodes and desc (/)
 @app.route('/')
 def index():
+    global dict_pkt_type
     # query result
     r = []
     result = []
@@ -51,10 +106,22 @@ def index():
     # find SIDs
     cur.execute('''SELECT * FROM sensor_last ORDER BY ts DESC''')
     # find Desc for each SID
-    for sid, ts in cur.fetchall():
+    for sid, ts, lid, lqi, pkt_type, value, value1, value2, value3, val_vcc_mv, val_dio, ev_id in cur.fetchall():
         cur.execute('''SELECT * FROM sensor_node WHERE (sid = ?)''', (sid,))
         d = cur.fetchone()
-        r.append((sid, d[1], d[2], ts, datetime.fromtimestamp(ts))) # SID(int32), SID(TEXT), DESC(TEXT), ts(EPOCH)
+
+        # PKT TYPE
+        lblinfo = ('UNK',)
+        if pkt_type in dict_pkt_type: lblinfo=dict_pkt_type[pkt_type]
+
+        # CUE EVENT
+        if pkt_type == dict_pkt_type['CUE']:
+            if ev_id in dict_ev_cue: 
+                ev_id = dict_ev_cue[ev_id]
+
+        r.append((sid, d[1], d[2], ts, datetime.fromtimestamp(ts) # SID(int32), SID(TEXT), DESC(TEXT), ts(EPOCH)
+                , (lblinfo[0], lid, lqi, value, value1, value2, value3, val_vcc_mv, val_dio, ev_id))) 
+            
     
     # sort by ID
     result = sorted(r, key=lambda x : x[1])
@@ -120,6 +187,8 @@ def list_days():
 # query sensor data for the day.
 @app.route('/show_the_day', methods=["POST"])
 def show_the_day():
+    global dict_pkt_type, dict_mag, dict_dio, dict_ev_cue
+
     sid = request.form['sid']
     i32sid = request.form['i32sid']
     latest_ts = request.form['latest_ts']
@@ -127,52 +196,6 @@ def show_the_day():
     year = request.form["year"]
     month = request.form["month"]
     day = request.form["day"]
-    
-    dict_pkt_type = {
-        1 : ('PAL MAG', 'MAG', 'N/A', 'N/A', 'N/A'),
-        2 : ('PAL AMB', '温度[℃]', '湿度[%]', '照度[lx]', 'N/A'),
-        3 : ('PAL MOT','X[G]', 'Y[G]', 'Z[G]', 'N/A'),
-        5 : ('CUE','X[G]', 'Y[G]', 'Z[G]', 'N/A'),
-        6 : ('ARIA','温度[℃]', '湿度[%]', 'N/A', 'N/A'),
-        257 : ('App_TWELITE','DI0/1/2/3', 'AD1[V]', 'AD2[V]', 'AD3[V]'),
-    }
-
-    dict_mag = {
-        0 : 'なし',
-        1 : 'N極',
-        2 : 'S極',
-        3 :  None
-    }
-
-    dict_dio = {
-        0 : 'H/H/H/H',
-        1 : 'L/H/H/H',
-        2 : 'H/L/H/H',
-        3 : 'L/L/H/H',
-        4 : 'H/H/L/H',
-        5 : 'L/H/L/H',
-        6 : 'H/L/L/H',
-        7 : 'L/L/L/H',
-        8 : 'H/H/H/L',
-        9 : 'L/H/H/L',
-        10: 'H/L/H/L',
-        11: 'L/L/H/L',
-        12: 'H/H/L/L',
-        13: 'L/H/L/L',
-        14: 'H/L/L/L',
-        15: 'L/L/L/L',
-    }
-
-    dict_ev_cue = {
-        1 : '面１',
-        2 : '面２',
-        3 : '面３',
-        4 : '面４',
-        5 : '面５',
-        6 : '面６',
-        8 : 'シェイク',
-        16 : 'ムーブ',
-    }
 
     # open data base and query
     con = db_open()
@@ -212,17 +235,15 @@ def show_the_day():
             if pkt_type == 1: value = mag
 
             # DIO
-            if pkt_type == 257:
+            if pkt_type == dict_pkt_type['APPTWELITE']:
                 bm_dio = int(value)
                 if bm_dio >= 0 and bm_dio <= 15:
                     value = dict_dio[bm_dio]
 
             # EVENT ON CUE
-            if pkt_type == 5:
-                pass
-                if ev_id is not None:
-                    if ev_id in dict_ev_cue: 
-                        ev_id = dict_ev_cue[ev_id]
+            if pkt_type == dict_pkt_type['CUE']:
+                if ev_id in dict_ev_cue: 
+                    ev_id = dict_ev_cue[ev_id]
 
         except:
             pass

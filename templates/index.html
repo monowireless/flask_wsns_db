@@ -12,7 +12,16 @@
                 <tr>
                     <th>SID</th>
                     <th>詳細</th>
+                    <th>センサー種別</th>
                     <th>最新データ</th>
+                    <th>LID</th>
+                    <th>LQI</th>
+                    <th>value</th>
+                    <th>value1</th>
+                    <th>value2</th>
+                    <th>value3</th>
+                    <th>val_vcc_mv</th>
+                    <th>EVENT</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,8 +36,17 @@
                         <input type="hidden" name="latest_ts" value="{{item[3]}}">
                         </form>
                     </td>
-                    <td>{{item[2]}}</td>
-                    <td>{{item[4]}}</td>
+                    <td>{{item[2]}}</td><!-- desc -->
+                    <td>{{item[5][0]}}</td>
+                    <td>{{item[4]}}</td><!-- timestamp -->
+                    <td>{{item[5][1]}}</td>
+                    <td>{{item[5][2]}}</td>
+                    <td>{{item[5][3]}}</td>
+                    <td>{{item[5][4]}}</td>
+                    <td>{{item[5][5]}}</td>
+                    <td>{{item[5][6]}}</td>
+                    <td>{{item[5][7]}}</td>
+                    <td>{{item[5][9]}}</td>
                 </tr>
                 {% endfor %}
             </tbody>
