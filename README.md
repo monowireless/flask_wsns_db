@@ -346,7 +346,7 @@ HTMLテンプレートに情報を渡しています。リスト(`data`)に含�
 
 データ検索はリスト表示と流れは同じですが、表示用データを`ORDER BY random() LIMIT 1024`の指定を行い間引いています。
 ```python
-    cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
+    cur.execute('''SELECT ts, lid, lqi, pkt_type, value, value1, value2, value3, val_vcc_mv, val_dio, ev_id FROM sensor_data
                    WHERE (sid=?) and (year=?) and (month=?) and (day=?)
                    ORDER BY random() LIMIT 1024''', (i32sid,year,month,day,))
 ```
@@ -370,7 +370,7 @@ HTMLテンプレートに情報を渡しています。リスト(`data`)に含�
 
 グラフのイメージはファイルを作成せず、直接転送しています。そのために `BytesIO()` を用いています。
 ```python
-    fig = plt.figure()
+    fig = Figure()
     ...
     ax = fig.add_subplot(3, 1, 1)
     ax.tick_params(labelsize = 6.5) 
