@@ -124,11 +124,6 @@ def toint_i32(val):
         x -= 2**32
     return x
 
-# open the db in `g`, global for session
-def db_open():
-    if 'db' not in g:
-        g.db = sqlite3.connect(conf_db_filename)
-    return g.db
 
 # plot a fig.
 # @ax       subplot object.
@@ -233,9 +228,26 @@ def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
     return _graph_get_img_tab_embedded_data(fig)
 
 #########################################################################################
-# HTTP REQUEST HANDLERS
+# Flask related functions
 #########################################################################################
 
+# open the db in `g`, global for session
+def db_open():
+    if 'db' not in g:
+        g.db = sqlite3.connect(conf_db_filename)
+        #app.logger.debug("opening DB %s" % g.db)
+
+    return g.db
+
+# called when a session is over, closing the db.
+@app.teardown_appcontext
+def teardown_db(exception):
+    db = g.pop('db', None)
+
+    if db is not None:
+        #app.logger.debug("closing DB %s" % db)
+        db.close()
+        
 ### Handler for address '/'
 # Enumerate SIDs where sensor data exists.
 @app.route('/')
@@ -246,8 +258,7 @@ def index():
     result = []
 
     # open data base
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
 
     # find SIDs
     cur.execute('''SELECT * FROM sensor_last ORDER BY ts DESC''')
@@ -272,12 +283,8 @@ def index():
     # sort by ID
     result = sorted(r, key=lambda x : x[1])
 
-    # close connection
-    con.close()
-
     # returns
     return render_template('index.html', data = result)
-
 
 ### Handler for POST request of the address '/year'.
 # Enumerate the years for which sensor data exist from the specified SID.
@@ -288,11 +295,9 @@ def list_years():
     desc = request.form["desc"]
 
     # open data base and query
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT year FROM sensor_data WHERE sid = ? ORDER BY year ASC''', (i32sid,))
     result = cur.fetchall()
-    con.close()
     return render_template('year.html', sid = sid, i32sid = i32sid, desc = desc, data = result)
 
 ### Handler for POST request of the address '/month'.
@@ -305,11 +310,9 @@ def list_months():
     year = request.form["year"]
     
     # open data base and query
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT month FROM sensor_data WHERE (sid=?) AND (year=?) ORDER BY month ASC''', (i32sid,year,))
     result = cur.fetchall()
-    con.close()
     return render_template('month.html', sid = sid, i32sid = i32sid, desc = desc, year = year, data = result)
 
 ### Handler for POST request of the address '/day'
@@ -323,12 +326,10 @@ def list_days():
     month = request.form["month"]
     
     # open data base and query
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT day FROM sensor_data 
                    WHERE (sid=?) AND (year=?) AND (month=?) ORDER BY month ASC''', (i32sid,year,month,))
     result = cur.fetchall()
-    con.close()
     return render_template('day.html', sid = sid, i32sid = i32sid, desc = desc, year = year, month=month, data = result)
 
 ### Handler for POST request of the address '/show_the_day'.
@@ -345,8 +346,7 @@ def show_the_day():
     day = request.form["day"]
 
     # open data base and query
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
     cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
                    WHERE (sid=?) and (year=?) and (month=?) and (day=?)
                    ''', (i32sid,year,month,day,))
@@ -397,8 +397,6 @@ def show_the_day():
 
         result.append((ct,lt,lqi,value,value1,value2,value3,val_vcc_mv,mag,ev_id))
         ct = ct + 1
-
-    con.close()
 
     return render_template('show_the_day.html', 
                 sid = sid, i32sid = i32sid, desc = desc, year = year, 
