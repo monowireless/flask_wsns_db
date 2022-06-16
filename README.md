@@ -56,12 +56,20 @@ from flask import Flask,render_template,request,g
 ```
 
 ### データベース接続
-セッションごとのデータベース接続を管理しています。
+リクエストごとのデータベース接続のオープンとクローズを処理します。
+オープンは明示的に db_open() を呼び出します。
+クローズは、リクエスト終了時に呼び出される teardown_appcontext を拡張して実装します。
 ```python
 def db_open():
     if 'db' not in g:
-        g.db = sqlite3.connect('../log/TWELITE_Stage_WSns.sqlite')
+        g.db = sqlite3.connect(conf_db_filename)
     return g.db
+
+@app.teardown_appcontext
+def teardown_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 ```
 
 ### / ルートのアクセス
@@ -74,8 +82,7 @@ def index():
     result = []
 
     # open data base
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
 
     # find SIDs
     cur.execute('''SELECT * FROM sensor_last ORDER BY ts DESC''')
@@ -85,9 +92,6 @@ def index():
         d = cur.fetchone()
         result.append((sid, d[1], d[2], ts, datetime.fromtimestamp(ts))) # SID(int32), SID(TEXT), DESC(TEXT), ts(EPOCH)
 
-    # close connection
-    con.close()
-
     # returns
     return render_template('index.html', data = result)
 ```
@@ -96,8 +100,7 @@ Webサーバーにルートアクセスがあった場合のふるまいを記�
 まずデータベースへの接続、sqlite3 操作用のカーソル `cur` を構築し、データベースからシリアルID(SID)一覧を検索します。
 ```python
     # open data base
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().con.cursor()
 ```
 
 シリアル一覧は `sensor_last` テーブルより得ています。このテーブルは SID と最後にデータを受信したときのタイムスタンプを
@@ -243,11 +246,9 @@ def list_years():
     desc = request.form["desc"]
 
     # open data base and query
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT year FROM sensor_data WHERE sid = ? ORDER BY year ASC''', (i32sid,))
     result = cur.fetchall()
-    con.close()
     return render_template('year.html', sid = sid, i32sid = i32sid, desc = desc, data = result)
 ```
 
