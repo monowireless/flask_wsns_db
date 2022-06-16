@@ -42,17 +42,19 @@ $ python3 app.py
 ```
 
 ブラウザからは http://localhost:5000 を開きます（デフォルト設定）。
-
+一部の環境やブラウザでは localhost のアクセスでエラーになる場合があります。その場合は http://127.0.0.1:5000 でも試してみてください。
 
 
 ## app.py について
 ※ この解説で引用されるソースコードは格納される最新コードと一部違う場合があります。
 
 ### import セクション
-sqlite3, Flask関連のパッケージを読み込んでいます。
+sqlite3, Flask, matplotlib関連のパッケージを読み込んでいます。
 ```python
 import sqlite3
 from flask import Flask,render_template,request,g
+from matplotlib.figure import Figure
+import matplotlib.dates as mdates
 ```
 
 ### データベース接続
