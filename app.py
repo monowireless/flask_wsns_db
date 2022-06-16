@@ -220,7 +220,7 @@ def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
         
     # 3rd fig
     if v_2.count(None) < len(v_2):
-        _graph_plot(fig.add_subplot(3, 1, 3), v_t, v_1, lblinfo[3], 'blue')
+        _graph_plot(fig.add_subplot(3, 1, 3), v_t, v_2, lblinfo[3], 'blue')
 
     # set layout strategy   
     fig.tight_layout()  
