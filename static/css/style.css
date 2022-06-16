@@ -4,14 +4,13 @@ th,td {
  
 table {
     border-collapse:  collapse;
-    width:  100%;
+    /* width:  100%; */
 }
  
 th {
-    /* width:  100px;              /* 幅指定 */
-    text-align: center;           /* 文字の揃え位置指定 */
+    text-align: center;
 }
  
 td {
-    text-align:  center;        /* 文字の揃え位置指定 */
+    text-align:  center;
 }
