@@ -42,7 +42,7 @@ $ cd {TWELITE STAGE}
 $ python3 app.py
 ```
 
-ブラウザからは http://localhost:5000 を開きます（デフォルト設定）。
+ブラウザからは http://localhost:5000 を開きます。
 一部の環境やブラウザでは localhost のアクセスでエラーになる場合があります。その場合は http://127.0.0.1:5000 でも試してみてください。
 
 

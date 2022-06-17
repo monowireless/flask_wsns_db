@@ -464,6 +464,6 @@ def graph_the_latest_url(sid):
 # RUN THE APP
 #########################################################################################
 if __name__ == '__main__':
-    #app.debug = True
-    #app.run(host='localhost')
-    app.run(host='0.0.0.0')
+    app.debug = True # debug option
+    app.run(host='localhost') # local machine only
+    # app.run(host='0.0.0.0') # to see this from LAN.
