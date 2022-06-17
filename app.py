@@ -10,12 +10,13 @@
 from datetime import datetime
 import base64
 from io import BytesIO
+import os
 
 # sqlite3 (Lightweight SQL database)
 import sqlite3
 
 # Flask (Lighweight HTTP server)
-from flask import Flask,render_template,request,g
+from flask import Flask,send_from_directory,render_template,request,g
 
 # matplotlib (Graphing)
 from matplotlib.figure import Figure
@@ -124,7 +125,6 @@ def toint_i32(val):
         x -= 2**32
     return x
 
-
 # plot a fig.
 # @ax       subplot object.
 # @v_time   list of X-AXIS (time)
@@ -156,8 +156,7 @@ def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
     global dict_label
 
     # open data base and query
-    con = db_open()
-    cur = con.cursor()
+    cur = db_open().cursor()
     if latest_ts == 0:
         cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
                     WHERE (sid=?) and (year=?) and (month=?) and (day=?)
@@ -172,7 +171,6 @@ def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
         day = lt.day
         
     r = cur.fetchall()
-    con.close()
 
     # check first sample (determine packet type, etc)
     lblinfo = ('UNKNOWN', 'VAL', 'VAL1', 'VAL2', 'VAL3')
@@ -226,6 +224,37 @@ def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
     fig.tight_layout()  
 
     return _graph_get_img_tab_embedded_data(fig)
+
+# get description from DB by SID
+# @param cur        DB cursor
+# @param i32sid     Integer of SID in int32_t.
+# @returns          Desc string.
+def get_desc(cur, i32sid):
+    desc = ''
+    try:
+        cur.execute('''SELECT * FROM sensor_node WHERE (sid = ?)''', (i32sid,))
+        d = cur.fetchone()
+        desc = d[2]
+    except:
+        pass
+
+    return desc
+
+# get latest timestamp from DB by SID
+# @param cur        DB cursor
+# @param i32sid     Integer of SID in int32_t.
+# @returns          latest timestamp in integer, 0 when error.
+def get_latest_ts(cur, i32sid):
+    latest = 0
+    try:
+        cur.execute('''SELECT * FROM sensor_last WHERE (sid = ?)''', (i32sid,))
+        d = cur.fetchone()
+        latest = int(d[1])
+    except:
+        pass
+
+    return latest
+
 
 #########################################################################################
 # Flask related functions
@@ -288,65 +317,45 @@ def index():
 
 ### Handler for POST request of the address '/year'.
 # Enumerate the years for which sensor data exist from the specified SID.
-@app.route('/year', methods=["POST"])
-def list_years():
-    sid = request.form['sid']
-    i32sid = request.form['i32sid']
-    desc = request.form["desc"]
-
+# the main proc
+def _list_years(sid, i32sid):
     # open data base and query
     cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT year FROM sensor_data WHERE sid = ? ORDER BY year ASC''', (i32sid,))
     result = cur.fetchall()
+    desc = get_desc(cur, i32sid)
     return render_template('year.html', sid = sid, i32sid = i32sid, desc = desc, data = result)
 
 ### Handler for POST request of the address '/month'.
 # Enumerates the months in which data exist from the specified SID and year
-@app.route('/month', methods=["POST"])
-def list_months():
-    sid = request.form['sid']
-    i32sid = request.form['i32sid']
-    desc = request.form["desc"]
-    year = request.form["year"]
-    
+def _list_months(sid, i32sid, year):
     # open data base and query
     cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT month FROM sensor_data WHERE (sid=?) AND (year=?) ORDER BY month ASC''', (i32sid,year,))
     result = cur.fetchall()
+    desc = get_desc(cur, i32sid)
     return render_template('month.html', sid = sid, i32sid = i32sid, desc = desc, year = year, data = result)
 
 ### Handler for POST request of the address '/day'
 # Enumerates the days for which data exist from the specified SID, year, and month.
-@app.route('/day', methods=["POST"])
-def list_days():
-    sid = request.form['sid']
-    i32sid = request.form['i32sid']
-    desc = request.form["desc"]
-    year = request.form["year"]
-    month = request.form["month"]
-    
+def _list_days(sid, i32sid, year, month):
     # open data base and query
     cur = db_open().cursor()
     cur.execute('''SELECT DISTINCT day FROM sensor_data 
                    WHERE (sid=?) AND (year=?) AND (month=?) ORDER BY month ASC''', (i32sid,year,month,))
     result = cur.fetchall()
+    desc = get_desc(cur, i32sid)
     return render_template('day.html', sid = sid, i32sid = i32sid, desc = desc, year = year, month=month, data = result)
 
 ### Handler for POST request of the address '/show_the_day'.
 # Enumerate the list of sensor data present for the specified SID, year, month, and day.
-@app.route('/show_the_day', methods=["POST"])
-def show_the_day():
+def _show_the_day(sid, i32sid, year, month, day):
     global dict_pkt_type, dict_mag, dict_dio, dict_ev_cue
-
-    sid = request.form['sid']
-    i32sid = request.form['i32sid']
-    desc = request.form["desc"]
-    year = request.form["year"]
-    month = request.form["month"]
-    day = request.form["day"]
 
     # open data base and query
     cur = db_open().cursor()
+    desc = get_desc(cur, i32sid)
+
     cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
                    WHERE (sid=?) and (year=?) and (month=?) and (day=?)
                    ''', (i32sid,year,month,day,))
@@ -402,29 +411,52 @@ def show_the_day():
                 sid = sid, i32sid = i32sid, desc = desc, year = year, 
                 month=month, day=day, data = result, lid=lid, lblinfo=lblinfo)
 
-### Handler for POST request of the address '/graph_the_day'.
-# Plot a graph of sensor data for a specified date.
-@app.route('/graph_the_day', methods=["POST"])
-def graph_the_day():
-    sid = request.form['sid']
-    i32sid = request.form['i32sid']
-    #latest_ts = request.form['latest_ts']
-    #desc = request.form["desc"]
-    year = request.form["year"]
-    month = request.form["month"]
-    day = request.form["day"]
+### Handlers for /{SID}/...
 
+# /<sid> should be hex 8digit string, but some others might be captured (like favicon.ico).
+# if the request is other than SID, forward request to the file at `static/root/`.
+@app.route('/<sid>')
+def list_years_url(sid):
+    app.logger.debug(sid)
+    try:
+        i32sid = toint_i32(sid)
+    except:
+        app.logger.debug("/{STRING}=%s" % sid)
+        i32sid = None
+
+    if i32sid is None: return send_from_directory(os.path.join(app.root_path, 'static/root/'), sid, )
+    else: return _list_years(sid, i32sid)
+
+# query months by SID and YEARs
+@app.route('/<string:sid>/<int:year>')
+def list_months_url(sid, year):
+    i32sid = toint_i32(sid)
+    return _list_months(sid, i32sid, year)
+
+# query days by SID, YEAR, MONTH
+@app.route('/<string:sid>/<int:year>/<int:month>')
+def list_days_url(sid, year, month):
+    i32sid = toint_i32(sid)
+    return _list_days(sid, i32sid, year, month)
+
+# show sensor data list queied by SID, YEAR, DAY.
+@app.route('/<string:sid>/<int:year>/<int:month>/<int:day>/l')
+def show_the_day_url(sid, year, month, day):
+    i32sid = toint_i32(sid)
+    return _show_the_day(sid, i32sid, year, month, day)
+
+# plot sensor data queied by SID, YEAR, DAY.
+@app.route('/<string:sid>/<int:year>/<int:month>/<int:day>/g')
+def graph_the_day_url(sid, year, month, day):
+    i32sid = toint_i32(sid)
     return _graph_a_day(sid, i32sid, 0, year, month, day)
 
-### Handler for POST request of the address '/graph_the_latest'.
-# Plot a graph of sensor data going back 24 hours from the specified timestamp
-@app.route('/graph_the_latest', methods=["POST"])
-def graph_the_latest():
-    sid = request.form['sid']
-    i32sid = request.form['i32sid']
-    latest_ts = request.form['latest_ts']
-    #desc = request.form["desc"]
-
+# plot latest sensor data.
+@app.route('/<string:sid>/g')
+def graph_the_latest_url(sid):
+    i32sid = toint_i32(sid)
+    latest_ts = get_latest_ts(db_open().cursor(), i32sid)
+    app.logger.debug("TS=%d" % latest_ts)
     return _graph_a_day(sid, i32sid, int(latest_ts), 0, 0, 0)
 
 #########################################################################################

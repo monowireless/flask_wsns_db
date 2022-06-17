@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>センサーノード{{sid}} - {{desc}}</title>
-    <link rel="stylesheet" type="text/css" href="static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 </head>
 <body>
     <div class="node">{{sid}} {{year}}</div>
@@ -20,14 +20,7 @@
                 {% for item in data %}
                 <tr>
                     <td>
-                        <form method="POST" name="FORM_{{item[0]}}" action="/day">
-                            <a href="javascript:FORM_{{item[0]}}.submit()">{{item[0]}}</a>
-                            <input type="hidden" name="i32sid" value="{{i32sid}}">
-                            <input type="hidden" name="sid" value="{{sid}}">
-                            <input type="hidden" name="desc" value="{{desc}}">
-                            <input type="hidden" name="year" value="{{year}}">
-                            <input type="hidden" name="month" value="{{item[0]}}">
-                        </form>
+                        <a href="/{{sid}}/{{year}}/{{item[0]}}">{{item[0]}}</a>
                     </td>
                 </tr>
                 {% endfor %}

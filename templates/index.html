@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>センサーノード</title>
-    <link rel="stylesheet" type="text/css" href="static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 </head>
 <body>
     <div>
@@ -28,23 +28,12 @@
                 {% for item in data %}
                 <tr>
                     <td>
-                        <form method="POST" name="FORM_{{item[1]}}" action="/year">
-                        <a href="javascript:FORM_{{item[1]}}.submit()">{{item[1]}}</a>
-                        <input type="hidden" name="i32sid" value="{{item[0]}}">
-                        <input type="hidden" name="sid" value="{{item[1]}}">
-                        <input type="hidden" name="desc" value="{{item[2]}}">
-                        </form>
+                        <a href="/{{item[1]}}">{{item[1]}}</a>
                     </td>
                     <td>{{item[2]}}</td><!-- desc -->
                     <td>{{item[5][0]}}</td>
                     <td>
-                        <form method="POST" name="FORM_L_{{item[1]}}" action="/graph_the_latest">
-                            <a href="javascript:FORM_L_{{item[1]}}.submit()">{{item[4]}}</a>
-                            <input type="hidden" name="i32sid" value="{{item[0]}}">
-                            <input type="hidden" name="sid" value="{{item[1]}}">
-                            <input type="hidden" name="desc" value="{{item[2]}}">
-                            <input type="hidden" name="latest_ts" value="{{item[3]}}">
-                        </form>
+                        <a href="/{{item[1]}}/g">{{item[4]}}</a>
                     </td><!-- timestamp -->
                     <td>{{item[5][1]}}</td>
                     <td>{{item[5][2]}}</td>
