@@ -149,82 +149,6 @@ def _graph_get_img_tab_embedded_data(fig):
     data = base64.b64encode(buf.getbuffer()).decode("ascii")
     return f"<img src='data:image/png;base64,{data}'/>"
 
-# grenrate graph data.
-# @param latest_ts              if not 0, render graph from latest_ts - 1day to latest_ts.
-# @param yera, month, day       specify YYYY/MM/DD (where latest_ts==0)
-def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
-    global dict_label
-
-    # open data base and query
-    cur = db_open().cursor()
-    if latest_ts == 0:
-        cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
-                    WHERE (sid=?) and (year=?) and (month=?) and (day=?)
-                    ORDER BY random() LIMIT 1024''', (i32sid,year,month,day,))
-    else:
-        cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
-                    WHERE (sid=?) and (ts BETWEEN ? and ?)
-                    ORDER BY random() LIMIT 1024''', (i32sid,latest_ts-86399,latest_ts,))
-        lt = datetime.fromtimestamp(latest_ts) # convert unix epoch timestamp to local time object.
-        year = lt.year
-        month = lt.month
-        day = lt.day
-        
-    r = cur.fetchall()
-
-    # check first sample (determine packet type, etc)
-    lblinfo = ('UNKNOWN', 'VAL', 'VAL1', 'VAL2', 'VAL3')
-    pkt_type = None
-    lid = None
-    if len(r) > 0:
-        try:
-            # pick first sample
-            r0 = r[0]
-            # packet type
-            pkt_type = int(r0[3])
-            if pkt_type in dict_label: lblinfo=dict_label[pkt_type]
-            # logical ID (normally, all the same)
-            lid = r0[1]
-        except:
-            pass
-
-    # list for plotting.
-    v_t = [] # X-AXIS (time)
-    v_0 = []
-    v_1 = []
-    v_2 = []
-    
-    # sorting the list (use random pick during SQL query, but sorted by ts is better for grapphing)
-    sr = sorted(r, key=lambda x : x[0])
-    ct = 1
-    for ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id in sr:
-        lt = datetime.fromtimestamp(ts) # convert unix epoch timestamp to local time object.
-        v_0.append(value)
-        v_1.append(value1)
-        v_2.append(value2)
-        v_t.append(lt)
-
-    ### plotting figs.
-    fig = Figure()
-    fig.set_size_inches(5, 10)
-    fig.suptitle("%s - %04d/%02d/%02d - %s" % (sid, int(year), int(month), int(day), lblinfo[0]))
-    
-    # first fig
-    _graph_plot(fig.add_subplot(3, 1, 1), v_t, v_0, lblinfo[1], 'red')
-
-    # second fig
-    if v_1.count(None) < len(v_1):
-        _graph_plot(fig.add_subplot(3, 1, 2), v_t, v_1, lblinfo[2], 'green')
-        
-    # 3rd fig
-    if v_2.count(None) < len(v_2):
-        _graph_plot(fig.add_subplot(3, 1, 3), v_t, v_2, lblinfo[3], 'blue')
-
-    # set layout strategy   
-    fig.tight_layout()  
-
-    return _graph_get_img_tab_embedded_data(fig)
-
 # get description from DB by SID
 # @param cur        DB cursor
 # @param i32sid     Integer of SID in int32_t.
@@ -411,6 +335,83 @@ def _show_the_day(sid, i32sid, year, month, day):
                 sid = sid, i32sid = i32sid, desc = desc, year = year, 
                 month=month, day=day, data = result, lid=lid, lblinfo=lblinfo)
 
+
+# grenrate graph data.
+# @param latest_ts              if not 0, render graph from latest_ts - 1day to latest_ts.
+# @param yera, month, day       specify YYYY/MM/DD (where latest_ts==0)
+def _graph_a_day(sid, i32sid, latest_ts, year, month, day):
+    global dict_label
+
+    # open data base and query
+    cur = db_open().cursor()
+    if latest_ts == 0:
+        cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
+                    WHERE (sid=?) and (year=?) and (month=?) and (day=?)
+                    ORDER BY random() LIMIT 1024''', (i32sid,year,month,day,))
+    else:
+        cur.execute('''SELECT ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id FROM sensor_data
+                    WHERE (sid=?) and (ts BETWEEN ? and ?)
+                    ORDER BY random() LIMIT 1024''', (i32sid,latest_ts-86399,latest_ts,))
+        lt = datetime.fromtimestamp(latest_ts) # convert unix epoch timestamp to local time object.
+        year = lt.year
+        month = lt.month
+        day = lt.day
+        
+    r = cur.fetchall()
+
+    # check first sample (determine packet type, etc)
+    lblinfo = ('UNKNOWN', 'VAL', 'VAL1', 'VAL2', 'VAL3')
+    pkt_type = None
+    lid = None
+    if len(r) > 0:
+        try:
+            # pick first sample
+            r0 = r[0]
+            # packet type
+            pkt_type = int(r0[3])
+            if pkt_type in dict_label: lblinfo=dict_label[pkt_type]
+            # logical ID (normally, all the same)
+            lid = r0[1]
+        except:
+            pass
+
+    # list for plotting.
+    v_t = [] # X-AXIS (time)
+    v_0 = []
+    v_1 = []
+    v_2 = []
+    
+    # sorting the list (use random pick during SQL query, but sorted by ts is better for grapphing)
+    sr = sorted(r, key=lambda x : x[0])
+    ct = 1
+    for ts,lid,lqi,pkt_type,value,value1,value2,value3,val_vcc_mv,val_dio,ev_id in sr:
+        lt = datetime.fromtimestamp(ts) # convert unix epoch timestamp to local time object.
+        v_0.append(value)
+        v_1.append(value1)
+        v_2.append(value2)
+        v_t.append(lt)
+
+    ### plotting figs.
+    fig = Figure()
+    fig.set_size_inches(5, 10)
+    fig.suptitle("%s - %04d/%02d/%02d - %s" % (sid, int(year), int(month), int(day), lblinfo[0]))
+    
+    # first fig
+    _graph_plot(fig.add_subplot(3, 1, 1), v_t, v_0, lblinfo[1], 'red')
+
+    # second fig
+    if v_1.count(None) < len(v_1):
+        _graph_plot(fig.add_subplot(3, 1, 2), v_t, v_1, lblinfo[2], 'green')
+        
+    # 3rd fig
+    if v_2.count(None) < len(v_2):
+        _graph_plot(fig.add_subplot(3, 1, 3), v_t, v_2, lblinfo[3], 'blue')
+
+    # set layout strategy   
+    fig.tight_layout()  
+
+    return _graph_get_img_tab_embedded_data(fig)
+
 ### Handlers for /{SID}/...
 
 # /<sid> should be hex 8digit string, but some others might be captured (like favicon.ico).
@@ -463,5 +464,6 @@ def graph_the_latest_url(sid):
 # RUN THE APP
 #########################################################################################
 if __name__ == '__main__':
-    app.debug = True
-    app.run(host='localhost')
+    #app.debug = True
+    #app.run(host='localhost')
+    app.run(host='0.0.0.0')
