@@ -1,3 +1,5 @@
+#!/use/bin/env python3
+
 #########################################################################################
 # Copyright (C) 2022 Mono Wireless Inc. All Rights Reserved.
 # Released under MW-OSSLA-1J,1E (MONO WIRELESS OPEN SOURCE SOFTWARE LICENSE AGREEMENT).
@@ -7,10 +9,11 @@
 # IMPORTS
 #########################################################################################
 # generic modules
+import sys
+import os
 from datetime import datetime
 import base64
 from io import BytesIO
-import os
 
 # sqlite3 (Lightweight SQL database)
 import sqlite3
@@ -25,6 +28,10 @@ import matplotlib.dates as mdates
 #########################################################################################
 # VARIABLES
 #########################################################################################
+
+# get dirname, filename of this script
+scr_dir, scr_fname = os.path.split(os.path.abspath(__file__))
+
 # app object of Flask
 app = Flask(__name__)
 
@@ -34,9 +41,9 @@ app = Flask(__name__)
 #     db_file = ../log/your_db_file.sqlite
 import configparser
 config = configparser.ConfigParser()
-config.read('config.ini')
-try: conf_db_filename = config['SQLITE3']['db_file']
-except: conf_db_filename = '../log/TWELITE_Stage_WSns.sqlite'
+config.read(os.path.join(scr_dir, 'config.ini'))
+try: conf_db_filename = os.path.abspath(os.path.join(scr_dir, config['SQLITE3']['db_file']))
+except: conf_db_filename = os.path.abspath(os.path.join(scr_dir, '../log/TWELITE_Stage_WSns.sqlite'))
 
 #########################################################################################
 # DICTIONARIES
@@ -465,5 +472,5 @@ def graph_the_latest_url(sid):
 #########################################################################################
 if __name__ == '__main__':
     app.debug = True # debug option
-    app.run(host='localhost') # local machine only
-    # app.run(host='0.0.0.0') # to see this from LAN.
+    app.run(host='localhost') # local machine only.
+    # app.run(host='0.0.0.0') # exporting to LAN.
